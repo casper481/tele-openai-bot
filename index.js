@@ -20,7 +20,7 @@ bot.on('message', async (msg) => {
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [{ role: "user", content: msg.text }],
-      max_tokens: 1000,
+      max_tokens: 500,
     });
 
     const reply = response.choices[0].message.content;
