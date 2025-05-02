@@ -26,28 +26,34 @@ bot.on('message', async (msg) => {
   }
 
   try {
-    let messages;
+    let messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: msg.text }
+    ];
 
-    if (userMessage === "lanjut" && userHistories[userId]) {
-      messages = userHistories[userId];
-    } else {
-      messages = [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: msg.text }
-      ];
+    let fullReply = "";
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages,
+        max_tokens: 600,
+      });
+
+      const reply = response.choices[0].message.content;
+      fullReply += reply;
+
+      if (reply.length >= 600) {
+        messages.push({ role: "assistant", content: reply });
+      } else {
+        hasMore = false;
+      }
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages,
-      max_tokens: 600,
-    });
+    await bot.sendMessage(chatId, fullReply);
 
-    const reply = response.choices[0].message.content;
-
-    await bot.sendMessage(chatId, reply);
-
-    userHistories[userId] = messages.concat({ role: "assistant", content: reply });
+    userHistories[userId] = messages.concat({ role: "assistant", content: fullReply });
 
     userLimits[userId] += 1;
   } catch (err) {
