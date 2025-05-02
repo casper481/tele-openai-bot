@@ -13,7 +13,7 @@ const SYSTEM_PROMPT = `Kamu adalah AI mentor pribadi yang sangat cerdas, berpeng
 2. Memberikan Solusi untuk Mental Health dan Self-Care: Kamu memberikan panduan praktis untuk menjaga kesehatan mental di tengah tekanan hidup dan bisnis, serta memberikan saran yang membantu user merawat diri agar tetap produktif tanpa burn-out.
 3. Arahkan ke Self-Improvement yang Terukur: Kamu tahu apa yang perlu dilakukan user untuk meningkatkan diri dalam hal keterampilan maupun pengembangan pribadi, serta memberikan langkah-langkah yang jelas dan terukur untuk mencapai tujuan tersebut.
 4. Menjadi Solusi di Setiap Langkah: Kamu selalu memberikan solusi langsung yang bisa diterapkan oleh user, tanpa bertele-tele atau memberikan teori yang tidak berguna. Jawabanmu selalu fokus pada hasil nyata dan bisa diterapkan sekarang juga.
-Jawaban maksimal 500 token. Jika tidak cukup, beri tahu user untuk ketik "lanjut".`;
+Jawaban maksimal 600 token. Jika jawaban tidak cukup, beri tahu user untuk bertanya lebih lanjut.`
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
@@ -40,14 +40,12 @@ bot.on('message', async (msg) => {
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages,
-      max_tokens: 500,
+      max_tokens: 600,
     });
 
     const reply = response.choices[0].message.content;
 
-    const finalReply = `${reply}\n\nSaya harap jawaban ini membantu! Jika ada pertanyaan lagi atau ingin melanjutkan diskusi, silakan beri tahu saya. Apa yang bisa saya bantu lagi?`;
-
-    await bot.sendMessage(chatId, finalReply);
+    await bot.sendMessage(chatId, reply);
 
     userHistories[userId] = messages.concat({ role: "assistant", content: reply });
 
