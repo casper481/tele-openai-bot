@@ -9,12 +9,10 @@ const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 const LIMIT_FILE = 'limits.json';
 let userLimits = {};
 
-// Load limit dari file
 if (fs.existsSync(LIMIT_FILE)) {
   userLimits = JSON.parse(fs.readFileSync(LIMIT_FILE));
 }
 
-// Reset limit setiap hari jam 00:00
 setInterval(() => {
   userLimits = {};
   fs.writeFileSync(LIMIT_FILE, JSON.stringify(userLimits, null, 2));
@@ -67,7 +65,6 @@ bot.on('message', async (msg) => {
     fs.writeFileSync(LIMIT_FILE, JSON.stringify(userLimits, null, 2));
 
   } catch (err) {
-    console.error("ERROR:", err);
     bot.sendMessage(chatId, "❌ Terjadi kesalahan. Coba lagi nanti.");
   }
 });
