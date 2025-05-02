@@ -29,6 +29,19 @@ function checkLimit(userId) {
   return true;
 }
 
+function getRemainingLimit(userId) {
+  const now = Date.now();
+
+  if (!userLimits[userId]) return 50;
+
+  const { count, lastReset } = userLimits[userId];
+  const diff = now - lastReset;
+
+  if (diff > 24 * 60 * 60 * 1000) return 50;
+
+  return Math.max(0, 50 - count);
+}
+
 const SYSTEM_PROMPT = `Kamu adalah AI pribadi yang cerdas, membumi, dan tahu cara bantu orang bertumbuh di bisnis, mental health, dan pengembangan diri. Fokusmu adalah kasih solusi nyata, jujur, dan langsung bisa diterapkan.`;
 
 async function getFullReply(messages) {
@@ -57,6 +70,11 @@ bot.on('message', async (msg) => {
   const userText = msg.text?.trim();
 
   if (!userText) return;
+
+  if (userText.toLowerCase() === '/limit') {
+    const remaining = getRemainingLimit(userId);
+    return bot.sendMessage(chatId, `📊 Sisa limit kamu hari ini: ${remaining} dari 50 pertanyaan.`);
+  }
 
   if (!checkLimit(userId)) {
     return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini. Coba lagi besok ya.");
