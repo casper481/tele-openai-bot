@@ -1,13 +1,8 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const { OpenAI } = require('openai');
-const express = require('express');
-
-const app = express();
-app.use(express.json());
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 const userLimits = {};
@@ -26,7 +21,6 @@ bot.on('message', async (msg) => {
   const userMessage = msg.text?.trim().toLowerCase();
 
   if (!userLimits[userId]) userLimits[userId] = 0;
-
   if (userLimits[userId] >= 50) {
     return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini, coba lagi besok ya.");
   }
@@ -66,9 +60,4 @@ bot.on('message', async (msg) => {
     console.error("OpenAI Error:", err.message);
     bot.sendMessage(chatId, "❌ Terjadi kesalahan. Coba lagi nanti.");
   }
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Bot is running on port ${port}`);
 });
