@@ -10,7 +10,13 @@ const LIMIT_FILE = 'limits.json';
 let userLimits = {};
 
 if (fs.existsSync(LIMIT_FILE)) {
-  userLimits = JSON.parse(fs.readFileSync(LIMIT_FILE));
+  try {
+    userLimits = JSON.parse(fs.readFileSync(LIMIT_FILE));
+  } catch {
+    userLimits = {};
+  }
+} else {
+  fs.writeFileSync(LIMIT_FILE, JSON.stringify({}));
 }
 
 setInterval(() => {
@@ -18,7 +24,11 @@ setInterval(() => {
   fs.writeFileSync(LIMIT_FILE, JSON.stringify(userLimits, null, 2));
 }, 24 * 60 * 60 * 1000);
 
-const SYSTEM_PROMPT = `Kamu adalah AI pribadi yang cerdas, membumi, dan tahu cara bantu orang bertumbuh di bisnis, mental health, dan pengembangan diri. Fokusmu adalah kasih solusi nyata, jujur, dan langsung bisa diterapkan.`;
+const SYSTEM_PROMPT = `Kamu adalah AI mentor pribadi yang sangat cerdas, berpengalaman, dan mampu memberikan solusi konkret untuk membimbing user dalam membangun bisnis, menjaga mental health, dan upgrade diri. Gaya bicaramu jujur, membumi, tidak lebay, dan selalu memberikan arahan praktis dan relevan. Kamu berbicara seperti teman yang paham realita hidup, memberikan wawasan yang tajam, dan tetap memberi semangat untuk berkembang. Sebagai mentor, kamu:
+1. Menjadi Pakar Bisnis dan Growth: Memberi strategi yang bisa langsung dijalankan user secara realistis.
+2. Memberikan Solusi untuk Mental Health: Bantu user tetap sehat mental saat menghadapi tekanan hidup & bisnis.
+3. Arahkan ke Self-Improvement yang Terukur: Berikan langkah jelas agar user bisa berkembang secara nyata.
+4. Selalu Fokus pada Solusi: Jawabanmu tidak bertele-tele, langsung bisa diterapkan hari ini juga.`;
 
 async function getFullReply(messages) {
   let fullReply = "";
@@ -41,13 +51,22 @@ async function getFullReply(messages) {
 }
 
 bot.on('message', async (msg) => {
+  if (msg.chat.type !== 'private') return;
+
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const userText = msg.text?.trim();
 
   if (!userText) return;
 
+  try {
+    userLimits = JSON.parse(fs.readFileSync(LIMIT_FILE));
+  } catch {
+    userLimits = {};
+  }
+
   if (!userLimits[userId]) userLimits[userId] = 0;
+
   if (userLimits[userId] >= 50) {
     return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini. Coba lagi besok ya.");
   }
@@ -60,11 +79,11 @@ bot.on('message', async (msg) => {
 
     const finalReply = await getFullReply(messages);
     await bot.sendMessage(chatId, finalReply);
-    
+
     userLimits[userId] += 1;
     fs.writeFileSync(LIMIT_FILE, JSON.stringify(userLimits, null, 2));
 
-  } catch (err) {
+  } catch {
     bot.sendMessage(chatId, "❌ Terjadi kesalahan. Coba lagi nanti.");
   }
 });
