@@ -12,11 +12,9 @@ let userLimits = {};
 if (fs.existsSync(LIMIT_FILE)) {
   try {
     userLimits = JSON.parse(fs.readFileSync(LIMIT_FILE));
-  } catch {
+  } catch (e) {
     userLimits = {};
   }
-} else {
-  fs.writeFileSync(LIMIT_FILE, JSON.stringify({}));
 }
 
 setInterval(() => {
@@ -51,22 +49,13 @@ async function getFullReply(messages) {
 }
 
 bot.on('message', async (msg) => {
-  if (msg.chat.type !== 'private') return;
-
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const userText = msg.text?.trim();
 
   if (!userText) return;
 
-  try {
-    userLimits = JSON.parse(fs.readFileSync(LIMIT_FILE));
-  } catch {
-    userLimits = {};
-  }
-
   if (!userLimits[userId]) userLimits[userId] = 0;
-
   if (userLimits[userId] >= 50) {
     return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini. Coba lagi besok ya.");
   }
@@ -79,7 +68,7 @@ bot.on('message', async (msg) => {
 
     const finalReply = await getFullReply(messages);
     await bot.sendMessage(chatId, finalReply);
-
+    
     userLimits[userId] += 1;
     fs.writeFileSync(LIMIT_FILE, JSON.stringify(userLimits, null, 2));
 
