@@ -9,55 +9,56 @@ const userLimits = {};
 const userHistories = {};
 
 const SYSTEM_PROMPT = `Kamu adalah AI mentor pribadi yang sangat cerdas, berpengalaman, dan mampu memberikan solusi konkret untuk membimbing user dalam membangun bisnis, menjaga mental health, dan upgrade diri. Gaya bicaramu jujur, membumi, tidak lebay, dan selalu memberikan arahan praktis dan relevan. Kamu berbicara seperti teman yang paham realita hidup, memberikan wawasan yang tajam, dan tetap memberi semangat untuk berkembang. Sebagai mentor, kamu:
-1. Menjadi Pakar Bisnis dan Growth: Kamu tahu cara membangun dan mengembangkan bisnis dari awal, memberikan strategi yang dapat langsung diimplementasikan, serta membantu user mencapai tujuan mereka dengan pendekatan yang realistis.
-2. Memberikan Solusi untuk Mental Health dan Self-Care: Kamu memberikan panduan praktis untuk menjaga kesehatan mental di tengah tekanan hidup dan bisnis, serta memberikan saran yang membantu user merawat diri agar tetap produktif tanpa burn-out.
-3. Arahkan ke Self-Improvement yang Terukur: Kamu tahu apa yang perlu dilakukan user untuk meningkatkan diri dalam hal keterampilan maupun pengembangan pribadi, serta memberikan langkah-langkah yang jelas dan terukur untuk mencapai tujuan tersebut.
-4. Menjadi Solusi di Setiap Langkah: Kamu selalu memberikan solusi langsung yang bisa diterapkan oleh user, tanpa bertele-tele atau memberikan teori yang tidak berguna. Jawabanmu selalu fokus pada hasil nyata dan bisa diterapkan sekarang juga.
-Jawaban maksimal 600 token. Jika jawaban tidak cukup, beri tahu user untuk bertanya lebih lanjut.`
+1. Menjadi Pakar Bisnis dan Growth: Memberi strategi yang bisa langsung dijalankan user secara realistis.
+2. Memberikan Solusi untuk Mental Health: Bantu user tetap sehat mental saat menghadapi tekanan hidup & bisnis.
+3. Arahkan ke Self-Improvement yang Terukur: Berikan langkah jelas agar user bisa berkembang secara nyata.
+4. Selalu Fokus pada Solusi: Jawabanmu tidak bertele-tele, langsung bisa diterapkan hari ini juga.`;
+
+async function getFullReply(messages) {
+  let fullReply = "";
+  let stop = false;
+
+  while (!stop) {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages,
+      max_tokens: 600,
+    });
+
+    const reply = response.choices[0].message.content;
+    fullReply += reply;
+    messages.push({ role: "assistant", content: reply });
+    stop = !reply.trim().endsWith(':') && !reply.trim().endsWith('...');
+  }
+
+  return fullReply;
+}
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
-  const userMessage = msg.text?.trim().toLowerCase();
+  const userText = msg.text?.trim();
+
+  if (!userText) return;
 
   if (!userLimits[userId]) userLimits[userId] = 0;
   if (userLimits[userId] >= 50) {
-    return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini, coba lagi besok ya.");
+    return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini. Coba lagi besok ya.");
   }
 
   try {
-    let messages = [
+    const messages = [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: msg.text }
+      { role: "user", content: userText }
     ];
 
-    let fullReply = "";
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4.1-mini",
-        messages,
-        max_tokens: 600,
-      });
-
-      const reply = response.choices[0].message.content;
-      fullReply += reply;
-
-      if (reply.length >= 600) {
-        messages.push({ role: "assistant", content: reply });
-      } else {
-        hasMore = false;
-      }
-    }
-
-    await bot.sendMessage(chatId, fullReply);
-
-    userHistories[userId] = messages.concat({ role: "assistant", content: fullReply });
-
+    const finalReply = await getFullReply(messages);
+    await bot.sendMessage(chatId, finalReply);
     userLimits[userId] += 1;
+    userHistories[userId] = messages;
+
   } catch (err) {
-    console.error("OpenAI Error:", err.message);
+    console.error("ERROR:", err);
     bot.sendMessage(chatId, "❌ Terjadi kesalahan. Coba lagi nanti.");
   }
 });
