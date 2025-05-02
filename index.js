@@ -45,9 +45,12 @@ bot.on('message', async (msg) => {
 
     const reply = response.choices[0].message.content;
 
-    await bot.sendMessage(chatId, reply);
+    const finalReply = `${reply}\n\nSaya harap jawaban ini membantu! Jika ada pertanyaan lagi atau ingin melanjutkan diskusi, silakan beri tahu saya. Apa yang bisa saya bantu lagi?`;
+
+    await bot.sendMessage(chatId, finalReply);
 
     userHistories[userId] = messages.concat({ role: "assistant", content: reply });
+
     userLimits[userId] += 1;
   } catch (err) {
     console.error("OpenAI Error:", err.message);
