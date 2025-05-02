@@ -1,45 +1,33 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const { Configuration, OpenAIApi } = require('openai');
+const { OpenAI } = require('openai');
 
-const token = process.env.TELEGRAM_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-
-const userData = {};
+const userLimits = {};
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
-  const text = msg.text;
+  const userId = msg.from.id;
 
-  // Batasi jumlah pertanyaan per user
-  if (!userData[chatId]) {
-    userData[chatId] = { count: 0 };
+  if (!userLimits[userId]) userLimits[userId] = 0;
+  if (userLimits[userId] >= 50) {
+    return bot.sendMessage(chatId, "❌ Kamu sudah mencapai limit 50 pertanyaan hari ini, coba lagi besok ya.");
   }
-
-  if (userData[chatId].count >= 50) {
-    bot.sendMessage(chatId, '❌ Kamu sudah mencapai batas maksimal 50 pertanyaan.');
-    return;
-  }
-
-  // Tambahkan hitungan
-  userData[chatId].count++;
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: text }],
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [{ role: "user", content: msg.text }],
       max_tokens: 1000,
     });
 
-    const reply = completion.data.choices[0].message.content;
-    bot.sendMessage(chatId, reply);
-  } catch (error) {
-    console.error(error);
-    bot.sendMessage(chatId, '❌ Maaf, terjadi error saat memproses pertanyaanmu.');
+    const reply = response.choices[0].message.content;
+    await bot.sendMessage(chatId, reply);
+    userLimits[userId] += 1;
+  } catch (err) {
+    console.error("OpenAI Error:", err.message);
+    bot.sendMessage(chatId, "❌ Terjadi kesalahan. Coba lagi nanti.");
   }
 });
