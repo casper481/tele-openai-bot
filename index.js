@@ -44,8 +44,8 @@ bot.on('message', async (msg) => {
     });
 
     const reply = response.choices[0].message.content;
-    const finalReply = reply + "\n\n(❗Butuh lanjutan? Ketik: lanjut)";
-    await bot.sendMessage(chatId, finalReply);
+
+    await bot.sendMessage(chatId, reply);
 
     userHistories[userId] = messages.concat({ role: "assistant", content: reply });
     userLimits[userId] += 1;
